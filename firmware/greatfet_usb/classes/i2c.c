@@ -93,7 +93,7 @@ static int i2c_verb_write(struct command_transaction *trans)
 static int i2c_verb_repeated_transmit(struct command_transaction *trans)
 {
 	uint32_t tx_length_single;
-	uint16_t address 			= comms_argument_parse_uint16_t(trans);
+	uint16_t address			= comms_argument_parse_uint16_t(trans);
 	uint16_t rx_length_single	= comms_argument_parse_uint16_t(trans);
 	uint8_t  transmit_count		= comms_argument_parse_uint8_t(trans);
 	uint8_t *data_to_write 		= comms_argument_read_buffer(trans, -1, &tx_length_single);
@@ -105,14 +105,22 @@ static int i2c_verb_repeated_transmit(struct command_transaction *trans)
 	uint16_t rx_length 			= rx_length_single * transmit_count;
 	uint8_t *i2c_rx_buffer 		= comms_response_reserve_space(trans, rx_length);
 
+	if (!i2c_rx_buffer) {
+		pr_error("error: i2c: cannot capture %d bytes simultaneously; data won't fit in response!\n");
+		return ENOMEM;
+	}
+
 	if (!comms_transaction_okay(trans)) {
 		return EBADMSG;
 	}
 
+	uint8_t rx_buffer_position = 0;
+
 	for (uint8_t i = 0; i < transmit_count; i++)
 	{
 		i2c_bus_write(&i2c0, address, data_to_write, (size_t) tx_length_single);
-		i2c_bus_read(&i2c0, address, &i2c_rx_buffer[i*rx_length_single], (size_t) rx_length_single);
+		i2c_bus_read(&i2c0, address, &i2c_rx_buffer[rx_buffer_position], (size_t) rx_length_single);
+		rx_buffer_position += rx_length_single;
 	}
 
 	return 0;
