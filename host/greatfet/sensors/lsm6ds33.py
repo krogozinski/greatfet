@@ -6,7 +6,6 @@ from .. import errors
 from ..sensor import GreatFETSensor
 from ..interfaces.i2c_device import I2CDevice
 from enum import IntEnum
-import math
 
 
 class OutputDataRate(IntEnum):
@@ -340,7 +339,7 @@ class LSM6DS33(I2CDevice, GreatFETSensor):
 
     def _who_am_i(self):
         """
-        Returns the raw contents of the LSM6DS33 Who Am I egister.
+        Returns the raw contents of the LSM6DS33 Who Am I register.
         """
         response = self.transmit([self.REG_WHO_AM_I], 1)
 
@@ -436,15 +435,15 @@ class LSM6DS33(I2CDevice, GreatFETSensor):
                                     axis)
 
     def get_fifo_num_unread_words(self):
-        (num_unread_words_lsb, num_unread_words_msb) = (self.transmit(
-            [self.REG_FIFO_STATUS1], 2))
-        num_unread_words_lsb &= self.MASK_DIFF_FIFO_0_7
-        num_unread_words_msb &= self.MASK_DIFF_FIFO_8_11
+        num_unread_words_lsb = (self.transmit(
+            [self.REG_FIFO_STATUS1], 1))[0] & self.MASK_DIFF_FIFO_0_7
+        num_unread_words_msb = (self.transmit(
+            [self.REG_FIFO_STATUS2], 1))[0] & self.MASK_DIFF_FIFO_8_11
         return (num_unread_words_lsb | (num_unread_words_msb << 8))
 
     def get_fifo_pattern_index(self):
-        (pattern_lsb, pattern_msb) = (
-            self.transmit([self.REG_FIFO_STATUS3], 2))
+        pattern_lsb = (self.transmit([self.REG_FIFO_STATUS3], 1))[0]
+        pattern_msb = (self.transmit([self.REG_FIFO_STATUS4], 1))[0]
         return (pattern_lsb | (pattern_msb << 8))
 
     def get_fifo_watermark_status(self):
@@ -481,29 +480,21 @@ class LSM6DS33(I2CDevice, GreatFETSensor):
         for p in self._fifo_scalar_pattern:
             data[p] = []
 
-        # Get number of words in FIFO
+        # Get number of words to be read
         num_fifo_words = self.get_fifo_num_unread_words()
-	    num_datasets = (
-		    math.floor(num_fifo_words /
-		        self._get_num_fifo_pattern_scalars())
-	    )
 
         # In continuous mode, one data set must remain
         # in the FIFO to prevent data misalignment
         # and FIFO mode being reset to bypass by hardware
         # See sec. 7.2.2 of the ST app note AN4682
         if (self._fifo_mode == FifoMode.FIFO_MODE_CONTINUOUS):
-            num_datasets -= 1
-
-        num_read_words = (
-            num_datasets *
-            self.FIFO_SCALARS_PER_DATASET
-        )
+            num_fifo_words -= (self.FIFO_SCALARS_PER_DATASET *
+                               self._get_num_fifo_pattern_datasets())
 
         base_pattern_idx = self.get_fifo_pattern_index()
-        fifo_raw = self.get_fifo_words(num_read_words)
+        fifo_raw = self.get_fifo_words(num_fifo_words)
 
-        for i in range(num_read_words):
+        for i in range(num_fifo_words):
             pattern_idx = ((base_pattern_idx + i) %
                            (self._get_num_fifo_pattern_scalars()))
             scalar = self._get_fifo_pattern_scalar(pattern_idx)
@@ -512,6 +503,7 @@ class LSM6DS33(I2CDevice, GreatFETSensor):
             data[scalar].append(data_word)
 
         return data
+
 
     def set_fifo_dataset_pattern(self, pattern):
         self._fifo_dataset_pattern = pattern
