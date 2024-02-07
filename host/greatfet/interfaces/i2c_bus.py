@@ -99,7 +99,7 @@ class I2CBus(PirateCompatibleInterface):
         return write_status
 
 
-    def transmit(self, address, data, receive_length):
+    def transmit(self, address, data, receive_length, count=1):
         """
             Wrapper function for back to back TX/RX.
 
@@ -112,10 +112,14 @@ class I2CBus(PirateCompatibleInterface):
                         to read the provided amount of data, in bytes.
         """
 
-        self.write(address, data)
-        return self.read(address, receive_length)
+        if count == 1:
+            self.write(address, data)
+            return self.read(address, receive_length)
+        else:
+            return self._repeated_transmit(address, receive_length, count, data)
 
-    def repeated_transmit(self, address, receive_length, count, data):
+
+    def _repeated_transmit(self, address, receive_length, count, data):
         """
             Repeatedly transmits a write/read over the I2C bus
 
@@ -128,6 +132,7 @@ class I2CBus(PirateCompatibleInterface):
                 count -- number of times to perform the write/read transission.
                 data -- The data to be sent to the given device.
         """
+
         MAX_TRANSMIT_COUNT = 255
 
         if (not isinstance(receive_length, int)) or receive_length < 0:
