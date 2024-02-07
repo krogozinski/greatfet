@@ -238,7 +238,7 @@ class SerialInterface(ABC, GreatFETInterface):
         ...
 
     @abstractmethod
-    def write(self, data: List[int]):
+    def write(self, data: list[int]):
         """
             Sends data over the channel.
 
@@ -248,29 +248,17 @@ class SerialInterface(ABC, GreatFETInterface):
         ...
 
     @abstractmethod
-    def transmit(self, data: List[int], receive_length: int = 0):
+    def transmit(self, data: list[int], receive_length: int = 0, count: int = 1):
         """
             Sends data over the I2C device channel, and receives
-            data in response.
+            data in response. Execute one or more times
+            in succession.
 
             Args:
                 data -- The data to be sent to the given device.
                 receive_length -- If provided, the channel will attempt
                         to read the provided amount of data, in bytes.
-        """
-        ...
-
-    @abstractmethod
-    def repeated_transmit(self, data: List[int], receive_length: int = 0, transmit_count: int = 1):
-        """
-            Repeatedly sends data over the device channel, and receives
-            data in response.
-
-            Args:
-                data -- The data to be sent to the given device.
-                receive_length -- If provided, the channel will attempt
-                        to read the provided amount of data, in bytes.
-                trasmit_count -- number of times to repeat the
-                        write/read transmission
+                count -- number of times to repeat the
+                        write/read transmission (default = 1).
         """
         ...
