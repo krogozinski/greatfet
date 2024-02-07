@@ -2,11 +2,12 @@
 # This file is part of GreatFET
 #
 
+from typing import List
 from ..interface import (
     GreatFETInterface,
     SerialInterface,
 )
-from i2c_bus import I2CBus
+from .i2c_bus import I2CBus
 
 class I2CDevice(GreatFETInterface):
     """
@@ -40,7 +41,7 @@ class I2CDevice(GreatFETInterface):
         self.bus.attach_device(self)
 
 
-    def transmit(self, data, receive_length):
+    def transmit(self, data, receive_length, count=1):
         """
             Sends data over the I2C bus, and receives
             data in response.
@@ -49,27 +50,11 @@ class I2CDevice(GreatFETInterface):
                 data -- The data to be sent to the given device.
                 receive_length -- If provided, the I2C controller will attempt
                         to read the provided amount of data, in bytes.
-        """
-        return self.bus.transmit(self.address, data, receive_length)
-
-
-    def repeated_transmit(self, data, receive_length, transmit_count):
-        """
-            Repeatedly sends data over the I2C bus, and receives
-            data in response.
-
-            Args:
-                data -- The data to be sent to the given device.
-                receive_length -- If provided, the I2C controller will attempt
-                        to read the provided amount of data, in bytes.
-                trasmit_count -- number of times to repeat the
+                count -- number of times to repeat the
                         write/read transmission
         """
-        return self.bus.repeated_transmit(self.address,
-                                          receive_length,
-                                          transmit_count,
-                                          data)
-
+        return self.bus.transmit(self.address, data, receive_length, count)
+    
 
     def read(self, receive_length=0):
         """
@@ -97,10 +82,9 @@ class I2DeviceChannel(SerialInterface):
         Class representing an I2C device channel connected to a GreatFET I2C Bus.
 
         This acts as a concrete implementation of the SerialInterface for an I2C device.
-
-
     """
-    def __init__(self, bus: I2CBus, address: int, name: string='i2c device'):
+
+    def __init__(self, bus: I2CBus, address: int, name: str='i2c device'):
         """
             Initialize a new I2C device channel implementing a serial interface.
 
@@ -113,7 +97,7 @@ class I2DeviceChannel(SerialInterface):
         self._i2c_device = I2CDevice(bus, address, name)
 
     # @override
-    def read(self, receive_length: int = 0):
+    def read(self, receive_length: int=0):
         self._i2c_device.read(self, receive_length)
 
     # @override
@@ -121,14 +105,5 @@ class I2DeviceChannel(SerialInterface):
         self._i2c_device.write(self, data)
 
     # @override
-    def transmit(self, data: List[int], receive_length: int = 0):
-        self._i2c_device.transmit(data, receive_length)
-
-    # @override
-    def repeated_transmit(self, data: List[int], receive_length: int = 0, transmit_count: int = 1):
-
-        return self._i2c_device.repeated_transmit(
-            receive_length,
-            transmit_count,
-            data
-        )
+    def transmit(self, data: List[int], receive_length: int=0, count: int=1):
+        self._i2c_device.transmit(data, receive_length, count)
