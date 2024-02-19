@@ -5,7 +5,8 @@
 from ...interface import SerialInterface
 from ..i2c_device import I2CDevice
 
-class I2DeviceChannel(SerialInterface):
+
+class I2CDeviceChannel(SerialInterface):
     """
         Class representing an I2C device channel connected to a GreatFET I2C Bus.
 
