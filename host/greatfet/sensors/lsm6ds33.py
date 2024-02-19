@@ -5,6 +5,7 @@
 from .. import errors
 from ..sensor import GreatFETSensor
 from ..interfaces.i2c_device import I2CDevice
+from ..interface import SerialInterface
 from enum import IntEnum
 
 
@@ -154,7 +155,7 @@ class FifoDataset(IntEnum):
     TEMP = 4
 
 
-class LSM6DS33(I2CDevice, GreatFETSensor):
+class LSM6DS33:
     """
         Represents a LSM6DS33 IMU.
     """
@@ -285,21 +286,16 @@ class LSM6DS33(I2CDevice, GreatFETSensor):
 
     FIFO_SCALARS_PER_DATASET = 3
 
-    def __init__(self, bus, address=DEFAULT_ADDRESS, suffix=''):
+    def __init__(self, channel: SerialInterface):
         """
         Initialize a new generic LSM6DS33 sensor.
 
         Args:
-            bus -- An object representing the I2C bus to talk on. For a
-                GreatFET One, this would typically be (device.i2c).
-            address - Optional; used to specify a non-default address.
-            suffix -- Optional suffix for the device name; used to identify
-                the device among multiple. No space is added for you.
+            channel -- The device channel object to communicate
+            with the LSM6DS33.
         """
 
-        # Set up the I2C communications channel used to communicate.
-        name = "LSM6DS33" + suffix
-        super(LSM6DS33, self).__init__(bus, address, name)
+        self._channel = channel
 
         # Get device ID as sensor presence check
         self._dev_id = self._who_am_i()
@@ -310,38 +306,11 @@ class LSM6DS33(I2CDevice, GreatFETSensor):
         self._int2_read = None
         self._data_endian = DataEndian.BLE_LSB_LOWER_ADDR
 
-    @classmethod
-    def create_sensor(cls, board, options=None):
-        """
-        Factory method that creates a LSM6DS33 using the sensor API.
-
-        This will eventually provide compatibility with e.g. datalogger
-        applications.
-
-        Args:
-            board -- The GreatFET being configured using the sensor API.
-            options -- A dictionary of any options to be provided to
-            the device.
-                To be used e.g. on application command lines.
-        """
-
-        if not options:
-            options = {}
-
-        address = options['address'] if (
-            'address' in options) else cls.DEFAULT_ADDRESS
-
-        default_suffix = "@{}".format(address)
-        suffix = options['suffix'] if ('suffix' in options) else default_suffix
-
-        # Create and return our raw sensor.
-        return cls(board.i2c, address, suffix)
-
-    def _who_am_i(self):
+    def _who_am_i(self) -> int:
         """
         Returns the raw contents of the LSM6DS33 Who Am I register.
         """
-        response = self.transmit([self.REG_WHO_AM_I], 1)
+        response = self._channel.transmit([self.REG_WHO_AM_I], 1)
 
         # ... and check to make sure that the device accepted our enable-value.
         result = response[0]
@@ -352,62 +321,62 @@ class LSM6DS33(I2CDevice, GreatFETSensor):
 
         return response[0]
 
-    def set_accel_output_data_rate(self, rate):
+    def set_accel_output_data_rate(self, rate: OutputDataRate) -> int:
         return self._write_reg_bits(self.REG_CTRL1_XL, rate, self.MASK_ODR_XL)
 
-    def set_gyro_output_data_rate(self, rate):
+    def set_gyro_output_data_rate(self, rate: OutputDataRate) -> int:
         return self._write_reg_bits(self.REG_CTRL2_G, rate, self.MASK_ODR_G)
 
-    def set_accel_full_scale(self, scale):
+    def set_accel_full_scale(self, scale: AccelFullScale) -> int:
         return self._write_reg_bits(self.REG_CTRL1_XL, scale, self.MASK_FS_XL)
 
-    def set_gyro_full_scale(self, scale):
+    def set_gyro_full_scale(self, scale: GyroFullScale) -> int:
         return self._write_reg_bits(self.REG_CTRL2_G, scale, self.MASK_FS_G)
 
-    def set_accel_bandwidth(self, bw):
+    def set_accel_bandwidth(self, bw: AccelBandwidthFilter) -> int:
         return self._write_reg_bits(self.REG_CTRL1_XL, bw, self.MASK_BW_XL)
 
-    def set_accel_perf_mode(self, mode):
+    def set_accel_perf_mode(self, mode: AccelPerfMode) -> int:
         return self._write_reg_bits(self.REG_CTRL6_C,
                                     mode,
                                     self.MASK_XL_HM_MODE)
 
-    def set_gyro_perf_mode(self, mode):
+    def set_gyro_perf_mode(self, mode: GyroPerfMode) -> int:
         return self._write_reg_bits(self.REG_CTRL7_C,
                                     mode,
                                     self.MASK_XL_HM_MODE)
 
-    def set_fifo_mode(self, mode):
+    def set_fifo_mode(self, mode: FifoMode) -> int:
         self._fifo_mode = mode
         return self._write_reg_bits(self.REG_FIFO_CTRL5,
                                     mode,
                                     self.MASK_FIFO_MODE)
 
-    def set_fifo_output_data_rate(self, odr):
+    def set_fifo_output_data_rate(self, odr: FifoOutputDataRate) -> int:
         return self._write_reg_bits(self.REG_FIFO_CTRL5,
                                     odr,
                                     self.MASK_ODR_FIFO)
 
-    def set_accel_dec_rate(self, rate):
+    def set_accel_dec_rate(self, rate: AccelDecRate) -> int:
         return self._write_reg_bits(self.REG_FIFO_CTRL3, rate,
                                     self.MASK_DEC_FIFO_XL)
 
-    def set_gyro_dec_rate(self, rate):
+    def set_gyro_dec_rate(self, rate: GyroDecRate) -> int:
         return self._write_reg_bits(self.REG_FIFO_CTRL3,
                                     rate,
                                     self.MASK_DEC_FIFO_G)
 
-    def set_fifo_threshold_level(self, level):
+    def set_fifo_threshold_level(self, level: int) -> int:
         write_status_ctrl1 = self._write_reg_bits(
             self.REG_FIFO_CTRL1, level & 0xFF, self.MASK_FTH_0_7)
         write_status_ctrl2 = self._write_reg_bits(
             self.REG_FIFO_CTRL2, level >> 8, self.MASK_FTH_8_11)
         return (write_status_ctrl1 | write_status_ctrl2)
 
-    def set_block_data_update(self, update):
+    def set_block_data_update(self, update: BlockDataUpdate) -> int:
         return self._write_reg_bits(self.REG_FIFO_CTRL3, update, self.MASK_BDU)
 
-    def set_data_endian(self, endian):
+    def set_data_endian(self, endian: DataEndian) -> int:
         self._data_endian = endian
         return self._write_reg_bits(self.REG_FIFO_CTRL3, endian, self.MASK_BLE)
 
@@ -435,34 +404,34 @@ class LSM6DS33(I2CDevice, GreatFETSensor):
                                     axis)
 
     def get_fifo_num_unread_words(self):
-        num_unread_words_lsb = (self.transmit(
+        num_unread_words_lsb = (self._channel.transmit(
             [self.REG_FIFO_STATUS1], 1))[0] & self.MASK_DIFF_FIFO_0_7
-        num_unread_words_msb = (self.transmit(
+        num_unread_words_msb = (self._channel.transmit(
             [self.REG_FIFO_STATUS2], 1))[0] & self.MASK_DIFF_FIFO_8_11
         return (num_unread_words_lsb | (num_unread_words_msb << 8))
 
     def get_fifo_pattern_index(self):
-        pattern_lsb = (self.transmit([self.REG_FIFO_STATUS3], 1))[0]
-        pattern_msb = (self.transmit([self.REG_FIFO_STATUS4], 1))[0]
+        pattern_lsb = (self._channel.transmit([self.REG_FIFO_STATUS3], 1))[0]
+        pattern_msb = (self._channel.transmit([self.REG_FIFO_STATUS4], 1))[0]
         return (pattern_lsb | (pattern_msb << 8))
 
     def get_fifo_watermark_status(self):
-        return (self.transmit([self.REG_FIFO_STATUS2], 1)[0] & self.MASK_FTH)
+        return (self._channel.transmit([self.REG_FIFO_STATUS2], 1)[0] & self.MASK_FTH)
 
     def get_fifo_full_status(self):
-        return (self.transmit([self.REG_FIFO_STATUS2], 1)[0] &
+        return (self._channel.transmit([self.REG_FIFO_STATUS2], 1)[0] &
                 self.MASK_FIFO_FULL)
 
     def get_fifo_empty_status(self):
-        return (self.transmit([self.REG_FIFO_STATUS2], 1)[0] &
+        return (self._channel.transmit([self.REG_FIFO_STATUS2], 1)[0] &
                 self.MASK_FIFO_EMPTY)
 
     def get_fifo_overrun_status(self):
-        return (self.transmit([self.REG_FIFO_STATUS2], 1)[0] &
+        return (self._channel.transmit([self.REG_FIFO_STATUS2], 1)[0] &
                 self.MASK_FIFO_OVER_RUN)
 
     def get_fifo_word(self):
-        return (self.transmit([self.REG_FIFO_DATA_OUT_L], 2))
+        return (self._channel.transmit([self.REG_FIFO_DATA_OUT_L], 2))
 
     def get_fifo_words(self, num_words):
         return (self.repeated_transmit([self.REG_FIFO_DATA_OUT_L],
@@ -470,7 +439,7 @@ class LSM6DS33(I2CDevice, GreatFETSensor):
                                        num_words))
 
     def get_data_endian(self):
-        self._data_endian = ((self.transmit([self.REG_FIFO_CTRL3], 1))[0] |
+        self._data_endian = ((self._channel.transmit([self.REG_FIFO_CTRL3], 1))[0] |
                              self.MASK_BLE)
         return self._data_endian
 
@@ -536,15 +505,15 @@ class LSM6DS33(I2CDevice, GreatFETSensor):
         return self._int2_read()
 
     def _write_reg_bits(self, addr, val, mask):
-        reg = self.transmit([addr], 1)  # Get current register value
+        reg = self._channel.transmit([addr], 1)  # Get current register value
         reg = reg[0]
         reg &= (~mask & 0xFF)   # Clear bits to be written
         reg |= val
-        self.write([addr, reg])
+        self._channel.write([addr, reg])
         return 0
 
     def _write_reg(self, addr, val):
-        self.write([addr, val])
+        self._channel.write([addr, val])
 
     def _raw_to_eng(self, raw, scale):
         return raw * scale
