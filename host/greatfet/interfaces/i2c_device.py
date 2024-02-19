@@ -2,12 +2,8 @@
 # This file is part of GreatFET
 #
 
-from typing import List
-from ..interface import (
-    GreatFETInterface,
-    SerialInterface,
-)
-from .i2c_bus import I2CBus
+from ..interface import GreatFETInterface
+
 
 class I2CDevice(GreatFETInterface):
     """
@@ -75,35 +71,3 @@ class I2CDevice(GreatFETInterface):
                 data -- The data to be sent to the given device.
         """
         return self.bus.write(self.address, data)
-
-
-class I2DeviceChannel(SerialInterface):
-    """
-        Class representing an I2C device channel connected to a GreatFET I2C Bus.
-
-        This acts as a concrete implementation of the SerialInterface for an I2C device.
-    """
-
-    def __init__(self, bus: I2CBus, address: int, name: str='i2c device'):
-        """
-            Initialize a new I2C device channel implementing a serial interface.
-
-            Args:
-                bus -- An object representing the I2C bus on which this device
-                    resides.
-                address - The address for the given I2C device on the bus.
-                name -- The display name for the given I2C device.
-        """
-        self._i2c_device = I2CDevice(bus, address, name)
-
-    # @override
-    def read(self, receive_length: int=0):
-        self._i2c_device.read(self, receive_length)
-
-    # @override
-    def write(self, data: List[int]):
-        self._i2c_device.write(self, data)
-
-    # @override
-    def transmit(self, data: List[int], receive_length: int=0, count: int=1):
-        self._i2c_device.transmit(data, receive_length, count)
