@@ -66,8 +66,8 @@ static int i2c_verb_read(struct command_transaction *trans)
 	// TODO: data validation
 
 	if (!comms_transaction_okay(trans)) {
-        return EBADMSG;
-    }
+		return EBADMSG;
+	}
 
 	// FIXME: handle the read status
 	i2c_bus_read(&i2c0, address, i2c_rx_buffer, rx_length);
@@ -83,9 +83,45 @@ static int i2c_verb_write(struct command_transaction *trans)
 	// TODO: data validation
 
 	if (!comms_transaction_okay(trans)) {
-        return EBADMSG;
-    }
+		return EBADMSG;
+	}
 	i2c_bus_write(&i2c0, address, data_to_write, tx_length);
+
+	return 0;
+}
+
+static int i2c_verb_repeated_transmit(struct command_transaction *trans)
+{
+	uint32_t tx_length_single;
+	uint16_t address			= comms_argument_parse_uint16_t(trans);
+	uint16_t rx_length_single	= comms_argument_parse_uint16_t(trans);
+	uint8_t  transmit_count		= comms_argument_parse_uint8_t(trans);
+	uint8_t *data_to_write 		= comms_argument_read_buffer(trans, -1, &tx_length_single);
+
+	if (!comms_transaction_okay(trans)) {
+		return EBADMSG;
+	}
+
+	uint16_t rx_length 			= rx_length_single * transmit_count;
+	uint8_t *rx_buffer 		= comms_response_reserve_space(trans, rx_length);
+
+	if (!rx_buffer) {
+		pr_error("error: i2c: cannot capture %d bytes simultaneously; data won't fit in response!\n");
+		return ENOMEM;
+	}
+
+	if (!comms_transaction_okay(trans)) {
+		return EBADMSG;
+	}
+
+	uint8_t rx_buffer_position = 0;
+
+	for (uint8_t i = 0; i < transmit_count; i++)
+	{
+		i2c_bus_write(&i2c0, address, data_to_write, (size_t) tx_length_single);
+		i2c_bus_read(&i2c0, address, &rx_buffer[rx_buffer_position], (size_t) rx_length_single);
+		rx_buffer_position += rx_length_single;
+	}
 
 	return 0;
 }
@@ -136,8 +172,8 @@ static int i2c_verb_read_bytes(struct command_transaction *trans)
 	}
 
 	if (!comms_transaction_okay(trans)) {
-        return EBADMSG;
-    }
+		return EBADMSG;
+	}
 
 	// Receive each of our bytes.
 	for (int i=0; i < count; i++) {
@@ -158,8 +194,8 @@ static int i2c_verb_scan(struct command_transaction *trans)
 	uint8_t address;
 
 	if (!comms_transaction_okay(trans)) {
-        return EBADMSG;
-    }
+		return EBADMSG;
+	}
 
 	for (address = 0; address < 16; address++) {
 		write_status_buffer[address] = 0;
@@ -206,8 +242,8 @@ static int i2c_verb_stream_periodic_read(struct command_transaction *trans)
 	data_to_write      = comms_argument_read_buffer(trans, -1, &stream.write_length);
 
 	if (!comms_transaction_okay(trans)) {
-        return EBADMSG;
-    }
+		return EBADMSG;
+	}
 
 	// If we already have a buffer, stop any existing transfers and clean up before creating a new one.
 	if (stream.write_data) {
@@ -264,6 +300,11 @@ static struct comms_verb _verbs[] = {
 			.in_signature = "<H*X", .out_signature = "<",
 			.in_param_names = "address, data", .out_param_names = "",
 			.doc = "Writes to the I2C bus and responds accordingly" },
+		{ .name = "repeated_transmit", .handler = i2c_verb_repeated_transmit,
+			.in_signature = "<HHB*X", .out_signature = "<*B",
+			.in_param_names = "address, rx_length, count, data",
+			.out_param_names = "response",
+			.doc = "Repeats a write/read transmission to the I2C bus" },
 		{ .name = "scan", .handler = i2c_verb_scan,
 			.in_signature = "", .out_signature = "<*B",
 			.in_param_names = "value, index, data", .out_param_names = "states",

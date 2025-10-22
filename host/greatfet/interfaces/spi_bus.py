@@ -17,6 +17,9 @@ class SPIBus(PirateCompatibleInterface):
     # Short name for this type of interface.
     INTERFACE_SHORT_NAME = "spi"
 
+    # Maximum number of repeated transmissions
+    MAX_TRANSMIT_COUNT = 255
+
     class FREQ():
         """
             Set of predefined frequencies used to configure the SPI bus. It
@@ -106,7 +109,7 @@ class SPIBus(PirateCompatibleInterface):
 
 
 
-    def transmit(self, data, receive_length=None, chip_select=None, deassert_chip_select=True, spi_mode=0):
+    def transmit(self, data, receive_length=None, chip_select=None, deassert_chip_select=True, spi_mode=0, count=1):
         """
         Sends (and typically receives) data over the SPI bus.
 
@@ -118,12 +121,12 @@ class SPIBus(PirateCompatibleInterface):
             chip_select          -- the GPIOPin object that will serve as the chip select
                     for this transaction, None to use the bus's default, or False to not set CS.
             deassert_chip_select -- if set, the chip-select line will be left low after
-                    communicating; this allows this transcation to be continued in the future
+                    communicating; this allows this transaction to be continued in the future
             spi_mode             -- The SPI mode number [0-3] to use for the communication. Defaults to 0.
+            count -- number of times to perform the write/read transmission.
         """
 
         data_to_transmit = bytearray(data)
-        data_received = bytearray()
 
         # If we weren't provided with a chip-select, use the bus's default.
         if chip_select is None:
@@ -140,16 +143,41 @@ class SPIBus(PirateCompatibleInterface):
         # Set the polarity and phase (the "SPI mode").
         self.api.set_clock_polarity_and_phase(spi_mode)
 
+        if count == 1:
+            data_received = self._transmit_chunks(data, receive_length, chip_select, deassert_chip_select, spi_mode)
+        elif count > 1:
+            if chip_select is not None:
+                raise ValueError("Cannot perform SPI repeated transmit with user-defined chip select GPIOPin")
+            else:
+                data_received = self._repeated_transmit(data, receive_length, count)
+        else:
+            ValueError(f"SPI transmit count must be greater between 1 and {self.MAX_TRANSMIT_COUNT} inclusive")
+
+        # Once we're done, return the data received.
+        return bytes(data_received)
+
+    def disable_drive(self):
+        """ Tristates each of the pins on the given SPI bus. """
+        self.api.enable_drive(False)
+
+
+    def enable_drive(self):
+        """ Enables the bus to drive each of its output pins. """
+        self.api.enable_drive(True)
+
+    def _transmit_chunks(self, data, receive_length=None, chip_select=None, deassert_chip_select=True):
+        data_received = bytearray()
+
         # Bring the relevant chip select low, to start the transaction.
         if chip_select:
             chip_select.low()
 
         # Transmit our data in chunks of the buffer size.
-        while data_to_transmit:
+        while data:
 
             # Extract a single data chunk from the transmit buffer.
-            chunk = data_to_transmit[0:self.buffer_size]
-            del data_to_transmit[0:self.buffer_size]
+            chunk = data[0:self.buffer_size]
+            del data[0:self.buffer_size]
 
             # Finally, exchange the data.
             response = self.api.clock_data(len(chunk), bytes(chunk))
@@ -164,22 +192,25 @@ class SPIBus(PirateCompatibleInterface):
         # Once we're done, return the data received.
         return bytes(data_received)
 
+    def _repeated_transmit(self, data, receive_length, count):
+        if (not isinstance(count, int)) or count > self.MAX_TRANSMIT_COUNT:
+            raise ValueError("Invalid SPI transmit count")
 
-    def disable_drive(self):
-        """ Tristates each of the pins on the given SPI bus. """
-        self.api.enable_drive(False)
-
-
-    def enable_drive(self):
-        """ Enables the bus to drive each of its output pins. """
-        self.api.enable_drive(True)
-
+        if len(data) > self.buffer_size:
+            raise ValueError("Tried to receive more than the size of the receive buffer.")
+        
+        data = bytes(data)
+        transmit_status = self.api.repeated_transmit(
+            receive_length,
+            count,
+            data
+            )
+        
+        return transmit_status
 
     #
     # Support methods to support bus pirate commands.
     #
-
-
     def _handle_pirate_read(self, length, ends_transaction=False):
         """ Performs a bus-pirate read of the given length, and returns a list of numeric values. """
 

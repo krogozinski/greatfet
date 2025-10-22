@@ -3,6 +3,7 @@
 #
 
 import time
+from abc import ABC, abstractmethod
 
 class GreatFETInterface(object):
     """
@@ -215,3 +216,49 @@ class PirateCompatibleInterface(GreatFETInterface):
     def _handle_pirate_stop(self):
         """ Starts a given communication by performing any start conditions present on the interface. """
         pass
+
+
+class SerialInterface(ABC, GreatFETInterface):
+    """
+        An abstract base class that defines the interface for serial communication
+        operations.
+
+        The interface is intended for communication with character devices that use
+        hardware interfaces such as I2C and SPI.
+    """
+    @abstractmethod
+    def read(self, receive_length: int = 0):
+        """
+            Reads data over the channel.
+
+            Args:
+                receive_length -- The channel will attempt
+                to read the provided amount of data, in bytes.
+        """
+        ...
+
+    @abstractmethod
+    def write(self, data: list[int]):
+        """
+            Sends data over the channel.
+
+            Args:
+                data -- The data to be sent over the given channel.
+        """
+        ...
+
+    @abstractmethod
+    def transmit(self, data: list[int], receive_length: int = 0, count: int = 1):
+        """
+            Sends data over the I2C device channel, and receives
+            data in response. Execute one or more times
+            in succession.
+
+            Args:
+                data -- The data to be sent to the given device.
+                receive_length -- If provided, the channel will attempt
+                        to read the provided amount of data, in bytes.
+                count -- number of times to repeat the
+                        write/read transmission (default = 1).
+        """
+        ...

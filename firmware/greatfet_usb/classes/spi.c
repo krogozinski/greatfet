@@ -109,6 +109,32 @@ static int spi_verb_transmit(struct command_transaction *trans)
 }
 
 
+static int spi_verb_repeated_transmit(struct command_transaction *trans)
+{
+	uint32_t write_length;
+	uint8_t read_length_single = comms_argument_parse_uint8_t(trans);
+	uint8_t transmit_count = comms_argument_parse_uint8_t(trans);
+	uint8_t *spi_buffer = comms_argument_read_buffer(trans, -1, &write_length);
+
+	if (!comms_transaction_okay(trans)) {
+		return EBADMSG;
+	}
+
+	uint16_t read_length 			= read_length_single * transmit_count;
+	uint8_t read_buffer_position	= 0;
+
+	for (uint8_t i = 0; i < transmit_count; i++)
+	{
+		spi_bus_transfer(&spi1_target, spi_buffer, write_length);
+		read_buffer_position += read_length_single;
+	}
+
+	comms_response_add_raw(trans, spi_buffer, read_length);
+
+	return 0;
+}
+
+
 static int spi_verb_clock_data(struct command_transaction *trans)
 {
 	uint32_t write_length;
@@ -158,7 +184,6 @@ static int spi_verb_set_clock_polarity_and_phase(struct command_transaction *tra
 }
 
 
-
 /**
  * Verbs for the firmware API.
  */
@@ -178,11 +203,14 @@ static struct comms_verb _verbs[] = {
 			.in_signature = "<B*X", .out_signature = "<*B",
 			.in_param_names = "read_length, data", .out_param_names = "response",
 			.doc = "Write to a SPI device and read response" },
+		{ .name = "repeated_transmit", .handler = spi_verb_repeated_transmit,
+			.in_signature = "<B*X", .out_signature = "<*B",
+			.in_param_names = "read_length, data", .out_param_names = "response",
+			.doc = "Repeat writes to a SPI device and read responses." },
 		{ .name = "clock_data", .handler = spi_verb_clock_data,
 			.in_signature = "<B*X", .out_signature = "<*B",
 			.in_param_names = "read_length, data", .out_param_names = "response",
 			.doc = "Clock data out and in; but don't change the chip select." },
-
 		// Advanced control.
 		{ .name = "enable_drive", .handler = spi_verb_clock_data,
 			.in_signature = "<?", .out_signature = "", .in_param_names = "enable_drive",

@@ -3,6 +3,7 @@
 #
 
 from ..interface import GreatFETInterface
+from ..interface import SerialInterface
 
 class SPIDevice(GreatFETInterface):
     """ Abstract base class representing an SPI-attached device. """
@@ -40,3 +41,7 @@ class SPIDevice(GreatFETInterface):
         """
         return self._bus.transmit(data, receive_length, spi_mode=self._spi_mode,
                 chip_select=self._chip_select, deassert_chip_select=deassert_chip_select)
+
+
+class SPIDeviceChannel(SerialInterface):
+    ...
