@@ -2,7 +2,7 @@
 # This file is part of GreatFET
 #
 
-cmake_minimum_required(VERSION 3.1.3)
+cmake_minimum_required(VERSION 3.28)
 set(PATH_GREATFET ${CMAKE_CURRENT_LIST_DIR}/../..)
 
 include(../cmake/greatfet_prelude.cmake)
