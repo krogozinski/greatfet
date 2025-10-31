@@ -224,12 +224,12 @@ class SerialInterface(ABC, GreatFETInterface):
         operations.
 
         The interface is intended for communication with character devices that use
-        hardware interfaces such as I2C and SPI.
+        serial hardware interfaces such as I2C and SPI.
     """
     @abstractmethod
     def read(self, receive_length: int = 0):
         """
-            Reads data over the channel.
+            Reads data from the device over the serial interface.
 
             Args:
                 receive_length -- The channel will attempt
@@ -240,7 +240,7 @@ class SerialInterface(ABC, GreatFETInterface):
     @abstractmethod
     def write(self, data: list[int]):
         """
-            Sends data over the channel.
+            Sends data to the device over the serial interface.
 
             Args:
                 data -- The data to be sent over the given channel.
@@ -250,13 +250,13 @@ class SerialInterface(ABC, GreatFETInterface):
     @abstractmethod
     def transmit(self, data: list[int], receive_length: int = 0, count: int = 1):
         """
-            Sends data over the I2C device channel, and receives
-            data in response. Execute one or more times
+            Sends data to the device over the serial interface, and receives
+            data from the device in response. Execute one or more times
             in succession.
 
             Args:
-                data -- The data to be sent to the given device.
-                receive_length -- If provided, the channel will attempt
+                data -- The data to be sent over the serial interface.
+                receive_length -- If provided, the interface will attempt
                         to read the provided amount of data, in bytes.
                 count -- number of times to repeat the
                         write/read transmission (default = 1).
