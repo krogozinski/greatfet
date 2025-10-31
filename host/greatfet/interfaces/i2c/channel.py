@@ -24,11 +24,11 @@ class I2CDeviceChannel(SerialInterface):
 
     # @override
     def read(self, receive_length: int=0):
-        return self._i2c_device.read(self, receive_length)
+        return self._i2c_device.read(receive_length)
 
     # @override
     def write(self, data: list[int]):
-        return self._i2c_device.write(self, data)
+        return self._i2c_device.write(data)
 
     # @override
     def transmit(self, data: list[int], receive_length: int=0, count: int=1):
