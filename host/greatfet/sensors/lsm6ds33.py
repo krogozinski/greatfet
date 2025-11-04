@@ -459,8 +459,8 @@ class LSM6DS33:
         # in the FIFO to prevent data misalignment
         # and FIFO mode being reset to bypass by hardware
         # See sec. 7.2.2 of the ST app note AN4682 (DocID027423 Rev 6)
-        if (self._fifo_mode == FifoMode.FIFO_MODE_CONTINUOUS):
-            num_fifo_words -= self._get_num_fifo_pattern_scalars()
+        # if (self._fifo_mode == FifoMode.FIFO_MODE_CONTINUOUS):
+        #     num_fifo_words -= self._get_num_fifo_pattern_scalars()
 
         base_pattern_idx = self.get_fifo_pattern_index()
 
