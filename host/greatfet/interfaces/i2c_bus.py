@@ -147,7 +147,8 @@ class I2CBus(PirateCompatibleInterface):
 
         if (not isinstance(count, int)) or not (count <= MAX_TRANSMIT_COUNT and count > 0) :
             raise ValueError("Invalid I2C transmit count")
-
+        
+        data = bytes(data)
         transmit_status = self.api.repeated_transmit(address,
                                                      receive_length,
                                                      count,
