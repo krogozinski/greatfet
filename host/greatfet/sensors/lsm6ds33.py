@@ -452,15 +452,15 @@ class LSM6DS33:
         # Get number of words to be read
         num_fifo_words = self.get_fifo_num_unread_words()
 
-        if num_fifo_words > 48:
-            print(f"num_fifo_words: {num_fifo_words}")
+        # Reduce to a complete dataset
+        num_fifo_words -= num_fifo_words % self._get_num_fifo_pattern_scalars()
+
         # In continuous mode, one data set must remain
         # in the FIFO to prevent data misalignment
         # and FIFO mode being reset to bypass by hardware
-        # See sec. 7.2.2 of the ST app note AN4682
+        # See sec. 7.2.2 of the ST app note AN4682 (DocID027423 Rev 6)
         if (self._fifo_mode == FifoMode.FIFO_MODE_CONTINUOUS):
-            num_fifo_words -= (self.FIFO_SCALARS_PER_DATASET *
-                               self._get_num_fifo_pattern_datasets())
+            num_fifo_words -= self._get_num_fifo_pattern_scalars()
 
         base_pattern_idx = self.get_fifo_pattern_index()
         fifo_raw = self.get_fifo_words(num_fifo_words)
