@@ -404,15 +404,15 @@ class LSM6DS33:
                                     axis)
 
     def get_fifo_num_unread_words(self):
-        num_unread_words_lsb = (self._channel.transmit(
-            [self.REG_FIFO_STATUS1], 1))[0] & self.MASK_DIFF_FIFO_0_7
-        num_unread_words_msb = (self._channel.transmit(
-            [self.REG_FIFO_STATUS2], 1))[0] & self.MASK_DIFF_FIFO_8_11
+        num_unread_words_raw = self._channel.transmit([self.REG_FIFO_STATUS1], 2)
+        num_unread_words_lsb = num_unread_words_raw[0] & self.MASK_DIFF_FIFO_0_7
+        num_unread_words_msb = num_unread_words_raw[1] & self.MASK_DIFF_FIFO_8_11
         return (num_unread_words_lsb | (num_unread_words_msb << 8))
 
     def get_fifo_pattern_index(self):
-        pattern_lsb = (self._channel.transmit([self.REG_FIFO_STATUS3], 1))[0]
-        pattern_msb = (self._channel.transmit([self.REG_FIFO_STATUS4], 1))[0]
+        pattern_raw = self._channel.transmit([self.REG_FIFO_STATUS3], 2)
+        pattern_lsb = pattern_raw[0]
+        pattern_msb = pattern_raw[1]
         return (pattern_lsb | (pattern_msb << 8))
 
     def get_fifo_watermark_status(self):
