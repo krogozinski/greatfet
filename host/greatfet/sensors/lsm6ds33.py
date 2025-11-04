@@ -462,7 +462,6 @@ class LSM6DS33:
         if (self._fifo_mode == FifoMode.FIFO_MODE_CONTINUOUS):
             num_fifo_words -= self._get_num_fifo_pattern_scalars()
 
-        print(num_fifo_words)
         base_pattern_idx = self.get_fifo_pattern_index()
 
         fifo_raw = self.get_fifo_words(num_fifo_words)
