@@ -435,8 +435,8 @@ class LSM6DS33:
 
     def get_fifo_words(self, num_words):
         return (self._channel.transmit([self.REG_FIFO_DATA_OUT_L],
-                                       receive_length=2,
-                                       count=num_words))
+                                       receive_length=2*num_words,
+                                       count=1))
 
     def get_data_endian(self):
         self._data_endian = ((self._channel.transmit([self.REG_FIFO_CTRL3], 1))[0] |
