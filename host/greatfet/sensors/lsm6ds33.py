@@ -455,6 +455,9 @@ class LSM6DS33:
         # Reduce to a complete dataset
         num_fifo_words -= num_fifo_words % self._get_num_fifo_pattern_scalars()
 
+        if num_fifo_words != 192/2:
+            print(f"num_fifo_words: {num_fifo_words}")
+
         # In continuous mode, one data set must remain
         # in the FIFO to prevent data misalignment
         # and FIFO mode being reset to bypass by hardware
@@ -463,6 +466,9 @@ class LSM6DS33:
         #     num_fifo_words -= self._get_num_fifo_pattern_scalars()
 
         base_pattern_idx = self.get_fifo_pattern_index()
+
+        if base_pattern_idx != 0:
+            print(f"base_pattern_idx: {base_pattern_idx}")
 
         fifo_raw = self.get_fifo_words(num_fifo_words)
 
