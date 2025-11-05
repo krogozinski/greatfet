@@ -470,6 +470,8 @@ class LSM6DS33:
         if base_pattern_idx != 0:
             print(f"base_pattern_idx: {base_pattern_idx}")
 
+        base_pattern_idx = 0
+
         fifo_raw = self.get_fifo_words(num_fifo_words)
 
         for i in range(num_fifo_words):
