@@ -246,7 +246,7 @@ class LSM6DS33:
     MASK_DEC_FIFO_XL = 0x07
     MASK_DEC_FIFO_G = 0xF8
     MASK_FTH_0_7 = 0xFF
-    MASK_FTH_8_11 = 0x0F
+    MASK_FTH_8_11 = 0x3F
     MASK_BDU = 0x40
     MASK_BLE = 0x02
     MASK_PP_OD = 0x10
