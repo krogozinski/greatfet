@@ -264,7 +264,7 @@ class LSM6DS33:
     MASK_XEN_G = 0x08
     MASK_YEN_G = 0x10
     MASK_ZEN_G = 0x20
-    MASK_ODR_FIFO = 0x78
+    MASK_ODR_FIFO = 0xF8
 
     # Accel/gyro output scaling constants/sensitivity
     XL_FS_2G_MG_PER_LSB = 0.061
@@ -455,9 +455,6 @@ class LSM6DS33:
         # Reduce to a complete dataset
         num_fifo_words -= num_fifo_words % self._get_num_fifo_pattern_scalars()
 
-        if num_fifo_words != 192/2:
-            print(f"num_fifo_words: {num_fifo_words}")
-
         # In continuous mode, one data set must remain
         # in the FIFO to prevent data misalignment
         # and FIFO mode being reset to bypass by hardware
@@ -466,11 +463,6 @@ class LSM6DS33:
         #     num_fifo_words -= self._get_num_fifo_pattern_scalars()
 
         base_pattern_idx = self.get_fifo_pattern_index()
-
-        if base_pattern_idx != 0:
-            print(f"base_pattern_idx: {base_pattern_idx}")
-
-
         fifo_raw = self.get_fifo_words(num_fifo_words)
 
         for i in range(num_fifo_words):
