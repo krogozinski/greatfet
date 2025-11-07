@@ -414,6 +414,9 @@ class LSM6DS33:
         pattern_lsb = pattern_raw[0]
         pattern_msb = pattern_raw[1]
         return (pattern_lsb | (pattern_msb << 8))
+    
+    def get_fifo_status(self):
+        return (self._channel.transmit([self.REG_FIFO_STATUS1], 4))
 
     def get_fifo_watermark_status(self):
         return (self._channel.transmit([self.REG_FIFO_STATUS2], 1)[0] & self.MASK_FTH)
@@ -448,9 +451,15 @@ class LSM6DS33:
 
         for p in self._fifo_scalar_pattern:
             data[p] = []
+        
+        fifo_status = self.get_fifo_status()
+
+        num_fifo_words = ((fifo_status[0] & self.MASK_DIFF_FIFO_0_7) | 
+                          ((fifo_status[1] & self.MASK_DIFF_FIFO_8_11) << 8)
+            )
 
         # Get number of words to be read
-        num_fifo_words = self.get_fifo_num_unread_words()
+        #num_fifo_words = self.get_fifo_num_unread_words()
 
         # Reduce to a complete dataset
         num_fifo_words -= num_fifo_words % self._get_num_fifo_pattern_scalars()
@@ -462,7 +471,11 @@ class LSM6DS33:
         # if (self._fifo_mode == FifoMode.FIFO_MODE_CONTINUOUS):
         #     num_fifo_words -= self._get_num_fifo_pattern_scalars()
 
-        base_pattern_idx = self.get_fifo_pattern_index()
+        base_pattern_idx = ((fifo_status[3] & self.MASK_FTH_0_7) |
+                            ((fifo_status[4] & self.MASK_FTH_8_11) << 8)
+        )
+
+        #base_pattern_idx = self.get_fifo_pattern_index()
         fifo_raw = self.get_fifo_words(num_fifo_words)
 
         for i in range(num_fifo_words):
